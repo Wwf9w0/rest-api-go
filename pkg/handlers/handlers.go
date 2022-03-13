@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"errors"
 	"github.com/aws/aws-lambda-go/events"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/dynamodb/dynamodbiface"
@@ -24,7 +25,25 @@ func GetUser(req events.APIGatewayProxyRequest, tableName string, dynaClient dyn
 		}
 		return apiResponse(http.StatusOK, result)
 	}
-	result, err := user.FetchUser(tableName, dynaClient)
+	result, err := user.FetchUser(email, tableName, dynaClient)
+	if err != nil {
+		return apiResponse(http.StatusBadRequest, ErrorBody{
+			aws.String(err.Error()),
+		})
+	}
+	return apiResponse(http.StatusOK, result)
+}
+
+func GetUsers(req events.APIGatewayProxyRequest, tableName string, dynaClient dynamodbiface.DynamoDBAPI) (*events.APIGatewayProxyResponse, error) {
+	input := req.Body
+	if len(input) > 0 {
+		result, err := user.FetchUsers(tableName, dynaClient)
+		if err != nil {
+			return nil, errors.New(ErrorMethodNotAllowed)
+		}
+		return apiResponse(http.StatusOK, result)
+	}
+	result, err := user.FetchUsers(tableName, dynaClient)
 	if err != nil {
 		return apiResponse(http.StatusBadRequest, ErrorBody{
 			aws.String(err.Error()),
@@ -34,18 +53,36 @@ func GetUser(req events.APIGatewayProxyRequest, tableName string, dynaClient dyn
 }
 
 func CreateUser(req events.APIGatewayProxyRequest, tableName string, dynaClient dynamodbiface.DynamoDBAPI) (*events.APIGatewayProxyResponse, error) {
-	return nil, nil
+
+	result, err := user.CreateUser(req, tableName, dynaClient)
+	if err != nil {
+		return apiResponse(http.StatusBadRequest, ErrorBody{
+			aws.String(err.Error()),
+		})
+	}
+	return apiResponse(http.StatusCreated, result)
 
 }
 
 func UpdateUser(req events.APIGatewayProxyRequest, tableName string, dynaClient dynamodbiface.DynamoDBAPI) (*events.APIGatewayProxyResponse, error) {
-	return nil, nil
 
+	result, err := user.UpdateUser(req, tableName, dynaClient)
+	if err != nil {
+		return apiResponse(http.StatusBadRequest, ErrorBody{
+			aws.String(err.Error()),
+		})
+	}
+	return apiResponse(http.StatusOK, result)
 }
 
 func DeleteUser(req events.APIGatewayProxyRequest, tableName string, dynaClient dynamodbiface.DynamoDBAPI) (*events.APIGatewayProxyResponse, error) {
-	return nil, nil
-
+	result, err := user.DeleteUser(req, tableName, dynaClient)
+	if err != nil {
+		return apiResponse(http.StatusBadRequest, ErrorBody{
+			aws.String(err.Error()),
+		})
+	}
+	return apiResponse(http.StatusOK, result)
 }
 
 func UnhandledMethod() (*events.APIGatewayProxyResponse, error) {

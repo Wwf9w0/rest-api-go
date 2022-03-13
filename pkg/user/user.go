@@ -1,15 +1,26 @@
 package user
 
 import (
+	"encoding/json"
 	"errors"
+	"github.com/aws/aws-lambda-go/events"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/dynamodb"
 	"github.com/aws/aws-sdk-go/service/dynamodb/dynamodbattribute"
 	"github.com/aws/aws-sdk-go/service/dynamodb/dynamodbiface"
+	"rest-api/pkg/validators"
 )
 
 var (
-	ErrorFailedToFetchRecord = "error failed to fetch record"
+	ErrorFailedToFetchRecord      = "error failed to fetch record"
+	ErrorInvalidUserData          = "error invalid  user data"
+	ErrorFailedToUnmarshalRecord  = "dailed to unmarshal record"
+	ErrorInvalidEmail             = "error invalid email"
+	ErrorCouldNotMarshalItem      = "could not marshal item"
+	ErrorCouldNotDynamoPutItem    = "could not dynamo put item"
+	ErrorCouldNotDynamoDeleteItem = "could not dynamo delete item"
+	ErorUserAlreadyExist          = "user.User already exist"
+	ErrorUserDoesNotExist         = "user.User dos not exist"
 )
 
 type User struct {
@@ -59,14 +70,63 @@ func FetchUsers(tableName string, dynaClient dynamodbiface.DynamoDBAPI) (*[]User
 
 }
 
-func CreateUser() {
+func CreateUser(req events.APIGatewayProxyRequest, tableName string, dynaClient dynamodbiface.DynamoDBAPI) (*User, error) {
+	var u User
 
+	if err := json.Unmarshal([]byte(req.Body), &u); err != nil {
+		return nil, errors.New(ErrorInvalidUserData)
+	}
+
+	if !validators.IsEmailValid(u.Email) {
+		return nil, errors.New(ErrorInvalidEmail)
+	}
+	currentUser, _ := FetchUser(u.Email, tableName, dynaClient)
+
+	if currentUser != nil && len(currentUser.Email) != 0 {
+		return nil, errors.New(ErorUserAlreadyExist)
+	}
+
+	av, err := dynamodbattribute.MarshalMap(u)
+	if err != nil {
+		return nil, errors.New(ErrorCouldNotMarshalItem)
+	}
+	input := &dynamodb.PutItemInput{
+		Item:      av,
+		TableName: aws.String(tableName),
+	}
+	_, err = dynaClient.PutItem(input)
+	if err != nil {
+		return nil, errors.New(ErrorCouldNotDynamoPutItem)
+	}
+
+	return &u, nil
 }
 
-func UpdateUser() {
+func UpdateUser(req events.APIGatewayProxyRequest, tableName string, dynaClient dynamodbiface.DynamoDBAPI) (*User, error) {
+	var u User
+	if err := json.Unmarshal([]byte(req.Body), &u); err != nil {
+		return nil, errors.New(ErrorInvalidUserData)
+	}
+	currentUser, _ := FetchUser(u.Email, tableName, dynaClient)
+	if currentUser != nil && len(currentUser.Email) == 0 {
+		return nil, errors.New(ErrorUserDoesNotExist)
+	}
 
+	av, err := dynamodbattribute.MarshalMap(u)
+	if err != nil {
+		return nil, errors.New(ErrorCouldNotMarshalItem)
+	}
+
+	input := &dynamodb.PutItemInput{
+		Item:      av,
+		TableName: aws.String(tableName),
+	}
+
+	dynaClient.PutItem(input)
+
+	return &u, nil
 }
 
-func DeleteUser() error {
+func DeleteUser(req events.APIGatewayProxyRequest, tableName string, dynaClient dynamodbiface.DynamoDBAPI) (error, error) {
 
 }
