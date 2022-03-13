@@ -2,27 +2,32 @@ package handlers
 
 import (
 	"github.com/aws/aws-lambda-go/events"
+	"github.com/aws/aws-sdk-go/service/dynamodb/dynamodbiface"
 	"net/http"
 )
 
 var ErrorMethodNotAllowed = "method not allowed"
 
-func GetUser() (*events.APIGatewayProxyResponse, error) {
+type ErrorBodu struct {
+	ErrorMsg *string `json:"error,omitempty"`
+}
+
+func GetUser(req events.APIGatewayProxyRequest, tableName string, dynaClient dynamodbiface.DynamoDBAPI) (*events.APIGatewayProxyResponse, error) {
 
 	return nil, nil
 }
 
-func CreateUser() (*events.APIGatewayProxyResponse, error) {
+func CreateUser(req events.APIGatewayProxyRequest, tableName string, dynaClient dynamodbiface.DynamoDBAPI) (*events.APIGatewayProxyResponse, error) {
 	return nil, nil
 
 }
 
-func UpdateUser() (*events.APIGatewayProxyResponse, error) {
+func UpdateUser(req events.APIGatewayProxyRequest, tableName string, dynaClient dynamodbiface.DynamoDBAPI) (*events.APIGatewayProxyResponse, error) {
 	return nil, nil
 
 }
 
-func DeleteUser() (*events.APIGatewayProxyResponse, error) {
+func DeleteUser(req events.APIGatewayProxyRequest, tableName string, dynaClient dynamodbiface.DynamoDBAPI) (*events.APIGatewayProxyResponse, error) {
 	return nil, nil
 
 }
